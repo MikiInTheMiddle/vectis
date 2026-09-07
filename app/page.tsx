@@ -50,7 +50,7 @@ export default function Home() {
 
       <section className="practiceSection consultingSection"><div className="wrap">
         <div className="centerHeading"><p className="consultingKicker">Competenze</p><h2>Per il mondo<br />corporate.</h2></div>
-        <div className="consultingPractices">{practices.map(([n,t,d]) => <a href={t === "Vectis inHouse" ? "/vectis-inhouse" : "/competenze"} key={t} className="consultingPractice"><span>{n}</span><h3>{t}</h3><p>{d}</p><b>↗</b></a>)}</div>
+        <div className="consultingPractices">{practices.map(([n,t,d]) => <a href={t === "Vectis inHouse" ? "/vectis-inhouse" : "/competenze"} key={t} className={`consultingPractice ${t === "Tutte le competenze" ? "consultingPracticeAll" : ""}`}><span>{n}</span><h3>{t}</h3><p>{d}</p><b>↗</b></a>)}</div>
       </div></section>
 
       <section className="homeCases consultingSection"><div className="wrap"><div className="caseHeading"><div><p className="consultingKicker inverse">Case Studies</p><h2>Il metodo,<br /><em>messo al lavoro.</em></h2></div><a className="pillButton pillLight" href="/case-studies">Vedi la struttura <span>→</span></a></div><div className="caseRail">{featuredCases.map(([n,t,k,d])=><a className="caseCard" href="/case-study" key={n}><span>{n}</span><p>{k}</p><h3>{t}</h3><div><p>{d}</p><b>↗</b></div></a>)}</div></div></section>
