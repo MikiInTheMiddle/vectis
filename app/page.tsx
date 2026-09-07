@@ -9,10 +9,9 @@ const practices = [
 ];
 
 const outcomes = [
-  ["Qualità della decisione", "Più conoscenza rilevante e maggiore profondità di analisi ampliano le opzioni di scelta."],
-  ["Tempestività", "Tempi di risposta rapidi e certi, senza compromettere qualità e accuratezza."],
-  ["Accuratezza e Risk Control", "Valutazioni strutturate aumentano profondità, copertura e affidabilità decisionale."],
-  ["Costi chiari", "Costi prestabiliti e concordati, misurabili e allineati al valore."],
+  ["Decisioni più solide", "Il cliente riceve una lettura più completa delle opzioni e dei rischi rilevanti."],
+  ["Risposte tempestive", "Le informazioni utili arrivano quando servono alla decisione, con standard professionali invariati."],
+  ["Un rapporto più chiaro", "Attività, responsabilità e costi restano leggibili lungo tutto l’incarico."],
 ];
 
 const featuredCases = [
@@ -57,7 +56,7 @@ export default function Home() {
       <section className="homeCases consultingSection"><div className="wrap"><div className="caseHeading"><div><p className="consultingKicker inverse">Case Studies</p><h2>Il metodo,<br /><em>messo al lavoro.</em></h2></div><a className="pillButton pillLight" href="/case-studies">Vedi la struttura <span>→</span></a></div><div className="caseRail">{featuredCases.map(([n,t,k,d])=><a className="caseCard" href="/case-study" key={n}><span>{n}</span><p>{k}</p><h3>{t}</h3><div><p>{d}</p><b>↗</b></div></a>)}</div></div></section>
 
       <section className="outcomesSection consultingSection"><div className="wrap">
-        <p className="consultingKicker inverse">La nostra competitività</p><h2>Più giudizio. Più controllo.<br /><em>Più prevedibilità.</em></h2>
+        <p className="consultingKicker inverse">Il valore per il cliente</p><h2>Più giudizio. Più controllo.<br /><em>Più prevedibilità.</em></h2>
         <div className="outcomesGrid">{outcomes.map(([t,d],i)=><article key={t}><span>0{i+1}</span><h3>{t}</h3><p>{d}</p></article>)}</div>
       </div></section>
 
