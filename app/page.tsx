@@ -30,7 +30,6 @@ export default function Home() {
           <p className="consultingKicker">Vectis Legal STA · AI First</p>
           <h1>Intelligence<br />with judgment</h1>
           <p className="consultingHeroCopy">Intelligenza artificiale, metodo legale e giudizio professionale per decisioni migliori.</p>
-          <a className="pillButton" href="/chi-siamo">Scopri Vectis <span>→</span></a>
         </div>
       </section>
 
