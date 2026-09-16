@@ -96,11 +96,12 @@ export default function ReviewLayer() {
   useEffect(() => {
     if (!enabled) return;
     const collect = () => {
-      const nodes = Array.from(document.querySelectorAll<HTMLElement>("main > section, .expertiseRow, .consultingPractice, .caseCard, .caseIndexRow"));
+      const nodes = Array.from(document.querySelectorAll<HTMLElement>(".header, main > section, .expertiseRow, .consultingPractice, .caseCard, .caseIndexRow"));
       const used = new Map<string, number>();
       const headerBottom = document.querySelector<HTMLElement>(".header")?.getBoundingClientRect().bottom || 0;
       const next = nodes.map((node, index) => {
-        const title = node.querySelector("h1,h2,h3")?.textContent?.trim() || node.getAttribute("aria-label") || `Blocco ${index + 1}`;
+        const isNavigation = node.classList.contains("header");
+        const title = isNavigation ? "Menu di navigazione" : node.querySelector("h1,h2,h3")?.textContent?.trim() || node.getAttribute("aria-label") || `Blocco ${index + 1}`;
         let id = node.dataset.reviewAnchor || slug(title);
         const count = used.get(id) || 0;
         used.set(id, count + 1);
@@ -108,13 +109,13 @@ export default function ReviewLayer() {
         node.dataset.reviewAnchor = id;
         node.dataset.reviewLabel = title;
         const rect = node.getBoundingClientRect();
-        const pinTop = rect.top + 18;
+        const pinTop = isNavigation ? headerBottom + 8 : rect.top + 18;
         return {
           id,
           label: title,
           top: pinTop,
           right: Math.max(8, window.innerWidth - rect.right + 12),
-          visible: pinTop > headerBottom + 8 && pinTop < window.innerHeight - 36,
+          visible: isNavigation || (pinTop > headerBottom + 8 && pinTop < window.innerHeight - 36),
         };
       });
       setAnchors(next);
