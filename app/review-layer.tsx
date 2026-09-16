@@ -64,6 +64,7 @@ export default function ReviewLayer() {
     const collect = () => {
       const nodes = Array.from(document.querySelectorAll<HTMLElement>("main > section, .expertiseRow, .consultingPractice, .caseCard, .caseIndexRow"));
       const used = new Map<string, number>();
+      const headerBottom = document.querySelector<HTMLElement>(".header")?.getBoundingClientRect().bottom || 0;
       const next = nodes.map((node, index) => {
         const title = node.querySelector("h1,h2,h3")?.textContent?.trim() || node.getAttribute("aria-label") || `Blocco ${index + 1}`;
         let id = node.dataset.reviewAnchor || slug(title);
@@ -73,7 +74,14 @@ export default function ReviewLayer() {
         node.dataset.reviewAnchor = id;
         node.dataset.reviewLabel = title;
         const rect = node.getBoundingClientRect();
-        return { id, label: title, top: Math.max(8, rect.top + 18), right: Math.max(8, window.innerWidth - rect.right + 12), visible: rect.bottom > 0 && rect.top < window.innerHeight };
+        const pinTop = rect.top + 18;
+        return {
+          id,
+          label: title,
+          top: pinTop,
+          right: Math.max(8, window.innerWidth - rect.right + 12),
+          visible: pinTop > headerBottom + 8 && pinTop < window.innerHeight - 36,
+        };
       });
       setAnchors(next);
     };
