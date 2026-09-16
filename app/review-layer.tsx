@@ -27,6 +27,7 @@ export default function ReviewLayer() {
   const [selection, setSelection] = useState<{ anchor: string; label: string; quote: string; x: number; y: number } | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [shared, setShared] = useState(false);
+  const [totalOpen, setTotalOpen] = useState(0);
   const [ready, setReady] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
   const [accessPassword, setAccessPassword] = useState("");
@@ -64,8 +65,9 @@ export default function ReviewLayer() {
     const sync = async () => {
       const response = await fetch(`/api/review-comments?path=${encodeURIComponent(window.location.pathname)}`, { cache: "no-store" });
       if (!response.ok) return;
-      const data = await response.json() as { comments: Comment[] };
+      const data = await response.json() as { comments: Comment[]; openTotal?: number };
       setShared(true);
+      let importedOpen = 0;
       let local: Comment[] = [];
       try { local = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { local = []; }
       let mergedPage = data.comments;
@@ -74,9 +76,11 @@ export default function ReviewLayer() {
         const pending = local.filter((item) => item.path === window.location.pathname && !remoteIds.has(item.id));
         await Promise.all(pending.map((item) => fetch("/api/review-comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) })));
         mergedPage = [...data.comments, ...pending];
+        importedOpen = pending.filter((item) => !item.resolved).length;
         localStorage.setItem(MIGRATION_KEY, "1");
       }
       const merged = [...local.filter((item) => item.path !== window.location.pathname), ...mergedPage];
+      setTotalOpen((data.openTotal || 0) + importedOpen);
       setComments(merged); localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     };
     void sync();
@@ -185,7 +189,7 @@ export default function ReviewLayer() {
     localStorage.setItem(NAME_KEY, author.trim());
     const comment = { id: uid(), path, anchor: activeAnchor.id, label: activeAnchor.label, quote: activeAnchor.quote, author: author.trim(), body: body.trim(), createdAt: new Date().toISOString(), resolved: false, replies: [] };
     persist([...comments, comment]);
-    if (shared) void fetch("/api/review-comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(comment) });
+    if (shared) { setTotalOpen((current) => current + 1); void fetch("/api/review-comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(comment) }); }
     setBody(""); setActiveAnchor(null);
   };
 
@@ -213,7 +217,7 @@ export default function ReviewLayer() {
       return <button key={anchor.id} className="reviewPin" style={{ top: anchor.top, right: anchor.right }} onClick={() => { setPanelOpen(true); setActiveAnchor({ id: anchor.id, label: anchor.label }); }} aria-label={`${count} commenti su ${anchor.label}`}>{count}</button>;
     })}
     {selection && <button className="reviewSelection" style={{ left: selection.x, top: selection.y }} onPointerDown={(e) => { e.preventDefault(); setActiveAnchor({ id: selection.anchor, label: selection.label, quote: selection.quote }); setPanelOpen(true); window.getSelection()?.removeAllRanges(); setSelection(null); }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveAnchor({ id: selection.anchor, label: selection.label, quote: selection.quote }); setPanelOpen(true); window.getSelection()?.removeAllRanges(); setSelection(null); } }}>Commenta selezione</button>}
-    <button className="reviewLauncher" onClick={() => { setPanelOpen(true); setPlacing(false); }}><span>{pageComments.filter((item) => !item.resolved).length}</span> Commenti</button>
+    <button className="reviewLauncher" onClick={() => { setPanelOpen(true); setPlacing(false); }} aria-label={`${pageComments.filter((item) => !item.resolved).length} commenti aperti in questa pagina, ${totalOpen} totali`}><span>{pageComments.filter((item) => !item.resolved).length}</span> qui · {totalOpen} tot</button>
     <div className="reviewActionGroup">
       <p className="reviewHint">Seleziona una frase per commentarla, oppure</p>
       <button className={`reviewAdd ${placing ? "isActive" : ""}`} onClick={() => { setPlacing(!placing); setPanelOpen(false); setSelection(null); }}>{placing ? "Annulla" : "+ Commenta un blocco"}</button>

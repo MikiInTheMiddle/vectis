@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendCommentReply, deleteComment, hasDatabase, insertComment, listComments, StoredComment, updateComment } from "@/lib/review-db";
+import { appendCommentReply, countOpenComments, deleteComment, hasDatabase, insertComment, listComments, StoredComment, updateComment } from "@/lib/review-db";
 import { isAdmin, isReviewer } from "@/lib/review-auth";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
   if (all && !(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!all && !(await isReviewer())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const path = all ? undefined : request.nextUrl.searchParams.get("path") || "/";
-  return NextResponse.json({ configured: true, comments: await listComments(path) });
+  const [comments, openTotal] = await Promise.all([listComments(path), countOpenComments()]);
+  return NextResponse.json({ configured: true, comments, openTotal });
 }
 
 export async function POST(request: NextRequest) {

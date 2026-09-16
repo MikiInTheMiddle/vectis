@@ -57,6 +57,13 @@ export async function listComments(path?: string) {
   return rows.map((row) => mapRow(row as Record<string, unknown>));
 }
 
+export async function countOpenComments() {
+  await ensureReviewTable();
+  const sql = client();
+  const rows = await sql`SELECT COUNT(*)::int AS count FROM review_comments WHERE resolved = FALSE`;
+  return Number(rows[0]?.count || 0);
+}
+
 export async function insertComment(comment: StoredComment) {
   await ensureReviewTable();
   const sql = client();
