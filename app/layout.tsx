@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ReviewLayer from "./review-layer";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://vectislegal.eu"),
@@ -10,4 +11,4 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: "Vectis — Intelligence with judgment", description: "Lo studio legale AI-first per il mondo corporate.", images: ["/og.png"] },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="it"><body><div className="wireframeStamp">CONTENT WIREFRAME <span>UI TO BE DESIGNED</span></div>{children}</body></html>; }
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="it"><body><div className="wireframeStamp">CONTENT WIREFRAME <span>UI TO BE DESIGNED</span></div>{children}<ReviewLayer /></body></html>; }
