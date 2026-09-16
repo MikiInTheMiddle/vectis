@@ -99,6 +99,8 @@ export default function ReviewLayer() {
       const nodes = Array.from(document.querySelectorAll<HTMLElement>(".header, main > section, .expertiseRow, .consultingPractice, .caseCard, .caseIndexRow"));
       const used = new Map<string, number>();
       const headerBottom = document.querySelector<HTMLElement>(".header")?.getBoundingClientRect().bottom || 0;
+      const contentRailTop = headerBottom + 46;
+      const railBottom = window.innerHeight - 44;
       const next = nodes.map((node, index) => {
         const isNavigation = node.classList.contains("header");
         const title = isNavigation ? "Menu di navigazione" : node.querySelector("h1,h2,h3")?.textContent?.trim() || node.getAttribute("aria-label") || `Blocco ${index + 1}`;
@@ -109,15 +111,16 @@ export default function ReviewLayer() {
         node.dataset.reviewAnchor = id;
         node.dataset.reviewLabel = title;
         const rect = node.getBoundingClientRect();
-        const naturalPinTop = rect.top + 18;
-        const startsBehindHeader = !isNavigation && rect.top >= -8 && naturalPinTop <= headerBottom + 8;
-        const pinTop = isNavigation ? headerBottom + 8 : startsBehindHeader ? headerBottom + 42 : naturalPinTop;
+        const desiredTop = rect.top + 18;
+        const pinTop = isNavigation
+          ? headerBottom + 8
+          : Math.min(Math.max(desiredTop, contentRailTop), Math.max(contentRailTop, Math.min(rect.bottom - 35, railBottom)));
         return {
           id,
           label: title,
           top: pinTop,
-          right: Math.max(8, window.innerWidth - rect.right + 12),
-          visible: isNavigation || startsBehindHeader || (pinTop > headerBottom + 8 && pinTop < window.innerHeight - 36),
+          right: 18,
+          visible: isNavigation || (rect.bottom > contentRailTop && rect.top < railBottom),
         };
       });
       setAnchors(next);
@@ -201,10 +204,17 @@ export default function ReviewLayer() {
     setReplyDrafts({ ...replyDrafts, [id]: "" });
   };
 
+  const pinCandidates = anchors
+    .map((anchor) => ({ anchor, count: pageComments.filter((item) => item.anchor === anchor.id && !item.resolved).length }))
+    .filter(({ anchor, count }) => count > 0 && anchor.visible)
+    .sort((a, b) => a.anchor.top - b.anchor.top);
+  const visiblePins = pinCandidates.reduce<{ cursor: number; pins: Array<{ anchor: Anchor; count: number }> }>((result, { anchor, count }) => {
+    const top = Math.max(anchor.top, result.cursor + 35);
+    return { cursor: top, pins: top < window.innerHeight - 35 ? [...result.pins, { anchor: { ...anchor, top }, count }] : result.pins };
+  }, { cursor: -Infinity, pins: [] }).pins;
+
   return <div className="reviewLayer">
-    {anchors.map((anchor) => {
-      const count = pageComments.filter((item) => item.anchor === anchor.id && !item.resolved).length;
-      if (!count || !anchor.visible) return null;
+    {visiblePins.map(({ anchor, count }) => {
       return <button key={anchor.id} className="reviewPin" style={{ top: anchor.top, right: anchor.right }} onClick={() => { setPanelOpen(true); setActiveAnchor({ id: anchor.id, label: anchor.label }); }} aria-label={`${count} commenti su ${anchor.label}`}>{count}</button>;
     })}
     {selection && <button className="reviewSelection" style={{ left: selection.x, top: selection.y }} onPointerDown={(e) => e.preventDefault()} onClick={() => { setActiveAnchor({ id: selection.anchor, label: selection.label, quote: selection.quote }); setPanelOpen(true); setSelection(null); }}>Commenta selezione</button>}
