@@ -142,7 +142,7 @@ export default function ReviewLayer() {
     const selectedText = () => {
       const current = window.getSelection();
       const quote = current?.toString().trim();
-      if (!current || !quote || current.rangeCount === 0) { setSelection(null); return; }
+      if (!current || !quote || current.rangeCount === 0) return;
       const base = current.anchorNode instanceof Element ? current.anchorNode : current.anchorNode?.parentElement;
       const target = base?.closest<HTMLElement>("[data-review-anchor]");
       if (!target || target.closest(".reviewLayer")) { setSelection(null); return; }
@@ -212,7 +212,7 @@ export default function ReviewLayer() {
     {visiblePins.map(({ anchor, count }) => {
       return <button key={anchor.id} className="reviewPin" style={{ top: anchor.top, right: anchor.right }} onClick={() => { setPanelOpen(true); setActiveAnchor({ id: anchor.id, label: anchor.label }); }} aria-label={`${count} commenti su ${anchor.label}`}>{count}</button>;
     })}
-    {selection && <button className="reviewSelection" style={{ left: selection.x, top: selection.y }} onPointerDown={(e) => e.preventDefault()} onClick={() => { setActiveAnchor({ id: selection.anchor, label: selection.label, quote: selection.quote }); setPanelOpen(true); setSelection(null); }}>Commenta selezione</button>}
+    {selection && <button className="reviewSelection" style={{ left: selection.x, top: selection.y }} onPointerDown={(e) => { e.preventDefault(); setActiveAnchor({ id: selection.anchor, label: selection.label, quote: selection.quote }); setPanelOpen(true); window.getSelection()?.removeAllRanges(); setSelection(null); }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveAnchor({ id: selection.anchor, label: selection.label, quote: selection.quote }); setPanelOpen(true); window.getSelection()?.removeAllRanges(); setSelection(null); } }}>Commenta selezione</button>}
     <button className="reviewLauncher" onClick={() => { setPanelOpen(true); setPlacing(false); }}><span>{pageComments.filter((item) => !item.resolved).length}</span> Commenti</button>
     <div className="reviewActionGroup">
       <p className="reviewHint">Seleziona una frase per commentarla, oppure</p>
