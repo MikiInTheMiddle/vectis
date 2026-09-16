@@ -172,6 +172,7 @@ export default function ReviewLayer() {
     setPanelOpen(false); setPlacing(false); setEnabled(false); setShared(false);
   };
 
+  if (path.startsWith("/review-admin")) return null;
   if (!ready) return null;
   if (!enabled) return <div className="reviewLayer">
     <button className="reviewUnlock" onClick={() => setAccessOpen(true)}>Commenta</button>
