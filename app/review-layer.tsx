@@ -109,13 +109,15 @@ export default function ReviewLayer() {
         node.dataset.reviewAnchor = id;
         node.dataset.reviewLabel = title;
         const rect = node.getBoundingClientRect();
-        const pinTop = isNavigation ? headerBottom + 8 : rect.top + 18;
+        const naturalPinTop = rect.top + 18;
+        const startsBehindHeader = !isNavigation && rect.top >= -8 && naturalPinTop <= headerBottom + 8;
+        const pinTop = isNavigation ? headerBottom + 8 : startsBehindHeader ? headerBottom + 42 : naturalPinTop;
         return {
           id,
           label: title,
           top: pinTop,
           right: Math.max(8, window.innerWidth - rect.right + 12),
-          visible: isNavigation || (pinTop > headerBottom + 8 && pinTop < window.innerHeight - 36),
+          visible: isNavigation || startsBehindHeader || (pinTop > headerBottom + 8 && pinTop < window.innerHeight - 36),
         };
       });
       setAnchors(next);
