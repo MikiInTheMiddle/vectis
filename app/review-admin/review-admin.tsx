@@ -19,9 +19,15 @@ export default function ReviewAdmin() {
     if (response.ok) { const data = await response.json(); setComments(data.comments); setAuthenticated(true); setMessage(""); }
     else if (response.status === 503) setMessage("Database non ancora collegato al progetto Vercel.");
   };
-  // Initial session check is intentionally performed after client hydration.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+    const refresh = () => { if (document.visibilityState === "visible") void load(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const interval = window.setInterval(load, 15000);
+    return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.clearInterval(interval); };
+  }, []);
 
   const login = async (event: FormEvent) => {
     event.preventDefault(); setMessage("");

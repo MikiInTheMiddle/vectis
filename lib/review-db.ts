@@ -33,6 +33,10 @@ export async function ensureReviewTable() {
     replies JSONB NOT NULL DEFAULT '[]'::jsonb
   )`;
   await sql`CREATE INDEX IF NOT EXISTS review_comments_path_idx ON review_comments(path)`;
+  await sql`CREATE TABLE IF NOT EXISTS review_comment_deletions (
+    id TEXT PRIMARY KEY,
+    deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
 }
 
 function mapRow(row: Record<string, unknown>): StoredComment {
@@ -58,7 +62,8 @@ export async function insertComment(comment: StoredComment) {
   const sql = client();
   const replies = JSON.stringify(comment.replies || []);
   await sql`INSERT INTO review_comments (id,path,anchor,label,quote,author,body,created_at,resolved,replies)
-    VALUES (${comment.id},${comment.path},${comment.anchor},${comment.label},${comment.quote || null},${comment.author},${comment.body},${comment.createdAt},${comment.resolved},${replies}::jsonb)
+    SELECT ${comment.id},${comment.path},${comment.anchor},${comment.label},${comment.quote || null},${comment.author},${comment.body},${comment.createdAt},${comment.resolved},${replies}::jsonb
+    WHERE NOT EXISTS (SELECT 1 FROM review_comment_deletions WHERE id=${comment.id})
     ON CONFLICT (id) DO NOTHING`;
   return comment;
 }
@@ -74,5 +79,6 @@ export async function updateComment(id: string, resolved: boolean, replies: Stor
 export async function deleteComment(id: string) {
   await ensureReviewTable();
   const sql = client();
+  await sql`INSERT INTO review_comment_deletions (id) VALUES (${id}) ON CONFLICT (id) DO NOTHING`;
   await sql`DELETE FROM review_comments WHERE id=${id}`;
 }
