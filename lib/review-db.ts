@@ -76,6 +76,14 @@ export async function updateComment(id: string, resolved: boolean, replies: Stor
   return rows[0] ? mapRow(rows[0] as Record<string, unknown>) : null;
 }
 
+export async function appendCommentReply(id: string, reply: StoredReply) {
+  await ensureReviewTable();
+  const sql = client();
+  const encoded = JSON.stringify([reply]);
+  const rows = await sql`UPDATE review_comments SET replies=replies || ${encoded}::jsonb WHERE id=${id} RETURNING *`;
+  return rows[0] ? mapRow(rows[0] as Record<string, unknown>) : null;
+}
+
 export async function deleteComment(id: string) {
   await ensureReviewTable();
   const sql = client();

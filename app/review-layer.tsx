@@ -188,12 +188,6 @@ export default function ReviewLayer() {
     setBody(""); setActiveAnchor(null);
   };
 
-  const toggleResolved = (id: string) => {
-    const next = comments.map((item) => item.id === id ? { ...item, resolved: !item.resolved } : item);
-    persist(next);
-    const changed = next.find((item) => item.id === id);
-    if (shared && changed) void fetch("/api/review-comments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(changed) });
-  };
   const addReply = (id: string) => {
     const draft = replyDrafts[id]?.trim();
     if (!draft || !author.trim()) return;
@@ -236,7 +230,7 @@ export default function ReviewLayer() {
       <div className="reviewList">
         {!pageComments.length && !activeAnchor && <p className="reviewEmpty">Nessun commento in questa pagina. Seleziona del testo oppure usa “Commenta un blocco”.</p>}
         {[...pageComments].reverse().map((item) => <article key={item.id} className={item.resolved ? "isResolved" : ""}>
-          <div className="reviewMeta"><strong>{item.label}</strong><button onClick={() => toggleResolved(item.id)}>{item.resolved ? "Riapri" : "Risolvi"}</button></div>
+          <div className="reviewMeta"><strong>{item.label}</strong>{item.resolved && <span>Risolto</span>}</div>
           {item.quote && <blockquote>“{item.quote}”</blockquote>}
           <p>{item.body}</p><small>{item.author} · {new Date(item.createdAt).toLocaleDateString("it-IT")}</small>
           {item.replies.map((reply) => <div className="reviewReply" key={reply.id}><p>{reply.body}</p><small>{reply.author}</small></div>)}
