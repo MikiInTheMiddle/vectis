@@ -26,6 +26,10 @@ export default function ReviewLayer() {
   const [selection, setSelection] = useState<{ anchor: string; label: string; quote: string; x: number; y: number } | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [shared, setShared] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(false);
+  const [accessPassword, setAccessPassword] = useState("");
+  const [accessError, setAccessError] = useState("");
 
   const path = typeof window === "undefined" ? "" : window.location.pathname;
   const pageComments = useMemo(() => comments.filter((item) => item.path === path), [comments, path]);
@@ -36,15 +40,23 @@ export default function ReviewLayer() {
   };
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("review") !== "1") return;
-    // This client-only gate deliberately activates after hydration so normal pages render no review UI.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnabled(true);
-    document.body.classList.add("reviewMode");
-    try { setComments(JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")); } catch { setComments([]); }
-    setAuthor(localStorage.getItem(NAME_KEY) || "");
-    return () => document.body.classList.remove("reviewMode", "reviewPlacing");
+    let active = true;
+    fetch("/api/review-access", { cache: "no-store" }).then(async (response) => {
+      const data = await response.json() as { unlocked?: boolean };
+      if (!active) return;
+      setEnabled(Boolean(data.unlocked)); setReady(true);
+      if (data.unlocked) {
+        try { setComments(JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")); } catch { setComments([]); }
+        setAuthor(localStorage.getItem(NAME_KEY) || "");
+      }
+    }).catch(() => { if (active) setReady(true); });
+    return () => { active = false; document.body.classList.remove("reviewMode", "reviewPlacing"); };
   }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("reviewMode", enabled);
+    return () => document.body.classList.remove("reviewMode");
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -73,14 +85,6 @@ export default function ReviewLayer() {
 
   useEffect(() => {
     if (!enabled) return;
-    const originals = new Map<HTMLAnchorElement, string>();
-    document.querySelectorAll<HTMLAnchorElement>('a[href^="/"]').forEach((link) => {
-      originals.set(link, link.getAttribute("href") || "");
-      const url = new URL(link.href, window.location.origin);
-      url.searchParams.set("review", "1");
-      link.href = `${url.pathname}${url.search}${url.hash}`;
-    });
-
     const collect = () => {
       const nodes = Array.from(document.querySelectorAll<HTMLElement>("main > section, .expertiseRow, .consultingPractice, .caseCard, .caseIndexRow"));
       const used = new Map<string, number>();
@@ -133,13 +137,30 @@ export default function ReviewLayer() {
     document.addEventListener("touchend", selectedText);
     document.addEventListener("selectionchange", selectedText);
     return () => {
-      originals.forEach((href, link) => link.setAttribute("href", href));
       window.removeEventListener("scroll", collect); window.removeEventListener("resize", collect);
       document.removeEventListener("click", click, true); document.removeEventListener("mouseup", selectedText); document.removeEventListener("touchend", selectedText); document.removeEventListener("selectionchange", selectedText);
     };
   }, [enabled, placing]);
 
-  if (!enabled) return null;
+  const unlock = async (event: FormEvent) => {
+    event.preventDefault(); setAccessError("");
+    const response = await fetch("/api/review-access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: accessPassword }) });
+    if (!response.ok) { const data = await response.json(); setAccessError(data.error || "Accesso non riuscito"); return; }
+    setAccessPassword(""); setAccessOpen(false); setEnabled(true);
+    try { setComments(JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")); } catch { setComments([]); }
+    setAuthor(localStorage.getItem(NAME_KEY) || "");
+  };
+
+  const lockReview = async () => {
+    await fetch("/api/review-access", { method: "DELETE" });
+    setPanelOpen(false); setPlacing(false); setEnabled(false); setShared(false);
+  };
+
+  if (!ready) return null;
+  if (!enabled) return <div className="reviewLayer">
+    <button className="reviewUnlock" onClick={() => setAccessOpen(true)}>Commenta</button>
+    {accessOpen && <div className="reviewAccessBackdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setAccessOpen(false); }}><form className="reviewAccessModal" onSubmit={unlock}><button type="button" className="reviewAccessClose" onClick={() => setAccessOpen(false)}>×</button><small>VECTIS REVIEW</small><h2>Accedi ai commenti</h2><p>Inserisci la password condivisa per commentare il wireframe.</p><input type="password" value={accessPassword} onChange={(event) => setAccessPassword(event.target.value)} placeholder="Password review" required /><button type="submit">Entra in modalità review</button>{accessError && <strong>{accessError}</strong>}</form></div>}
+  </div>;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -181,7 +202,7 @@ export default function ReviewLayer() {
     </div>
 
     {panelOpen && <aside className="reviewPanel" aria-label="Pannello commenti">
-      <header><div><small>REVIEW MODE</small><h2>Commenti</h2><p>{shared ? "Condivisi con il team" : "Salvati in questo browser · prototipo"}</p></div><button onClick={() => { setPanelOpen(false); setActiveAnchor(null); }}>×</button></header>
+      <header><div><small>REVIEW MODE</small><h2>Commenti</h2><p>{shared ? "Condivisi con il team" : "Salvati in questo browser · prototipo"}</p><button className="reviewLogout" onClick={lockReview}>Esci dalla review</button></div><button onClick={() => { setPanelOpen(false); setActiveAnchor(null); }}>×</button></header>
       {activeAnchor && <form className="reviewComposer" onSubmit={submit}>
         <strong>{activeAnchor.label}</strong>
         {activeAnchor.quote && <blockquote>“{activeAnchor.quote}”</blockquote>}
