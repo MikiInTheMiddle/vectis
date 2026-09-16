@@ -144,6 +144,7 @@ export default function ReviewLayer() {
     })}
     {selection && <button className="reviewSelection" style={{ left: selection.x, top: selection.y }} onMouseDown={(e) => e.preventDefault()} onClick={() => { setActiveAnchor({ id: selection.anchor, label: selection.label, quote: selection.quote }); setPanelOpen(true); setSelection(null); }}>Commenta selezione</button>}
     <button className="reviewLauncher" onClick={() => { setPanelOpen(true); setPlacing(false); }}><span>{pageComments.filter((item) => !item.resolved).length}</span> Commenti</button>
+    <p className="reviewHint">Seleziona una frase per commentarla, oppure</p>
     <button className={`reviewAdd ${placing ? "isActive" : ""}`} onClick={() => { setPlacing(!placing); setPanelOpen(false); setSelection(null); }}>{placing ? "Annulla" : "+ Commenta un blocco"}</button>
 
     {panelOpen && <aside className="reviewPanel" aria-label="Pannello commenti">
