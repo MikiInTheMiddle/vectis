@@ -11,6 +11,7 @@ type Anchor = { id: string; label: string; top: number; right: number; visible: 
 
 const STORAGE_KEY = "vectis-wireframe-comments-v1";
 const NAME_KEY = "vectis-wireframe-reviewer-v1";
+const MIGRATION_KEY = "vectis-wireframe-db-migrated-v1";
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 const slug = (value: string) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 54) || "blocco";
 
@@ -67,14 +68,23 @@ export default function ReviewLayer() {
       setShared(true);
       let local: Comment[] = [];
       try { local = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { local = []; }
-      const remoteIds = new Set(data.comments.map((item) => item.id));
-      const pending = local.filter((item) => item.path === window.location.pathname && !remoteIds.has(item.id));
-      await Promise.all(pending.map((item) => fetch("/api/review-comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) })));
-      const mergedPage = [...data.comments, ...pending];
+      let mergedPage = data.comments;
+      if (!localStorage.getItem(MIGRATION_KEY)) {
+        const remoteIds = new Set(data.comments.map((item) => item.id));
+        const pending = local.filter((item) => item.path === window.location.pathname && !remoteIds.has(item.id));
+        await Promise.all(pending.map((item) => fetch("/api/review-comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) })));
+        mergedPage = [...data.comments, ...pending];
+        localStorage.setItem(MIGRATION_KEY, "1");
+      }
       const merged = [...local.filter((item) => item.path !== window.location.pathname), ...mergedPage];
       setComments(merged); localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     };
     void sync();
+    const refresh = () => { if (document.visibilityState === "visible") void sync(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const interval = window.setInterval(sync, 15000);
+    return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.clearInterval(interval); };
   }, [enabled]);
 
   useEffect(() => {
