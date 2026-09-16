@@ -3,7 +3,7 @@ export function Brand({ light = false }: { light?: boolean }) {
 }
 
 export function Header({ dark = true }: { dark?: boolean }) {
-  return <header className={`header ${dark ? "headerDark" : "headerLight"}`}><div className="prototypeBar"><span>Vectis / UX prototype</span><span>Navigation + content validation</span></div><div className="wrap headerInner">
+  return <header className={`header ${dark ? "headerDark" : "headerLight"}`}><div className="prototypeBar"><span className="prototypeIdentity">Vectis / UX prototype <a className="adminShortcut" href="/review-admin" aria-label="Apri pannello admin" title="Admin"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M3.5 14c.35-3 1.85-4.5 4.5-4.5s4.15 1.5 4.5 4.5" /></svg></a></span><span>Navigation + content validation</span></div><div className="wrap headerInner">
     <Brand light={dark} />
     <nav aria-label="Navigazione principale"><a href="/chi-siamo">Chi siamo</a><a href="/metodo">Metodo</a><a href="/competenze">Competenze</a><a href="/case-studies">Case Studies</a><a href="/team">Team</a><a href="mailto:musella@vectislegal.eu">Contatti</a></nav>
     <details className="mobileNav"><summary aria-label="Apri menu">Menu</summary><div><a href="/chi-siamo">Chi siamo</a><a href="/metodo">Metodo</a><a href="/competenze">Competenze</a><a href="/case-studies">Case Studies</a><a href="/team">Team</a><a href="mailto:musella@vectislegal.eu">Contatti</a></div></details>
