@@ -180,7 +180,7 @@ export default function ReviewLayer() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!activeAnchor || !body.trim() || !author.trim()) return;
+    if (!activeAnchor || !body.trim() || body.trim().length > 4000 || !author.trim()) return;
     localStorage.setItem(NAME_KEY, author.trim());
     const comment = { id: uid(), path, anchor: activeAnchor.id, label: activeAnchor.label, quote: activeAnchor.quote, author: author.trim(), body: body.trim(), createdAt: new Date().toISOString(), resolved: false, replies: [] };
     persist([...comments, comment]);
@@ -225,7 +225,8 @@ export default function ReviewLayer() {
         {activeAnchor.quote && <blockquote>“{activeAnchor.quote}”</blockquote>}
         <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Il tuo nome" aria-label="Il tuo nome" required />
         <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Scrivi un commento…" aria-label="Commento" required />
-        <div><button type="button" onClick={() => setActiveAnchor(null)}>Annulla</button><button type="submit">Pubblica</button></div>
+        <div className={`reviewCharacterCount ${body.length > 4000 ? "isOver" : body.length > 1000 ? "isLong" : ""}`} aria-live="polite"><span>{body.length} / 4.000</span>{body.length > 4000 ? <em>Riduci il testo di {body.length - 4000} caratteri.</em> : body.length > 3500 ? <em>Restano {4000 - body.length} caratteri.</em> : body.length > 1000 ? <em>Commento molto lungo: valuta se dividerlo in indicazioni più puntuali.</em> : null}</div>
+        <div><button type="button" onClick={() => setActiveAnchor(null)}>Annulla</button><button type="submit" disabled={body.trim().length > 4000}>Pubblica</button></div>
       </form>}
       <div className="reviewList">
         {!pageComments.length && !activeAnchor && <p className="reviewEmpty">Nessun commento in questa pagina. Seleziona del testo oppure usa “Commenta un blocco”.</p>}

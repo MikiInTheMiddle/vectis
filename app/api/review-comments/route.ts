@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
   if (!(await isReviewer())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const value = await request.json() as StoredComment;
   if (!value.id || !value.path || !value.anchor || !value.author?.trim() || !value.body?.trim()) return NextResponse.json({ error: "Invalid comment" }, { status: 400 });
-  const comment: StoredComment = { ...value, author: value.author.trim().slice(0, 80), body: value.body.trim().slice(0, 4000), quote: value.quote?.slice(0, 600), replies: [], resolved: false };
+  if (value.body.trim().length > 4000) return NextResponse.json({ error: "Comment too long" }, { status: 400 });
+  const comment: StoredComment = { ...value, author: value.author.trim().slice(0, 80), body: value.body.trim(), quote: value.quote?.slice(0, 600), replies: [], resolved: false };
   return NextResponse.json({ configured: true, comment: await insertComment(comment) }, { status: 201 });
 }
 
