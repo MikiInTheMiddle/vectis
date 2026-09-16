@@ -25,6 +25,7 @@ export default function ReviewLayer() {
   const [body, setBody] = useState("");
   const [selection, setSelection] = useState<{ anchor: string; label: string; quote: string; x: number; y: number } | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [shared, setShared] = useState(false);
 
   const path = typeof window === "undefined" ? "" : window.location.pathname;
   const pageComments = useMemo(() => comments.filter((item) => item.path === path), [comments, path]);
@@ -44,6 +45,25 @@ export default function ReviewLayer() {
     setAuthor(localStorage.getItem(NAME_KEY) || "");
     return () => document.body.classList.remove("reviewMode", "reviewPlacing");
   }, []);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const sync = async () => {
+      const response = await fetch(`/api/review-comments?path=${encodeURIComponent(window.location.pathname)}`, { cache: "no-store" });
+      if (!response.ok) return;
+      const data = await response.json() as { comments: Comment[] };
+      setShared(true);
+      let local: Comment[] = [];
+      try { local = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { local = []; }
+      const remoteIds = new Set(data.comments.map((item) => item.id));
+      const pending = local.filter((item) => item.path === window.location.pathname && !remoteIds.has(item.id));
+      await Promise.all(pending.map((item) => fetch("/api/review-comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) })));
+      const mergedPage = [...data.comments, ...pending];
+      const merged = [...local.filter((item) => item.path !== window.location.pathname), ...mergedPage];
+      setComments(merged); localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    };
+    void sync();
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -125,15 +145,25 @@ export default function ReviewLayer() {
     event.preventDefault();
     if (!activeAnchor || !body.trim() || !author.trim()) return;
     localStorage.setItem(NAME_KEY, author.trim());
-    persist([...comments, { id: uid(), path, anchor: activeAnchor.id, label: activeAnchor.label, quote: activeAnchor.quote, author: author.trim(), body: body.trim(), createdAt: new Date().toISOString(), resolved: false, replies: [] }]);
+    const comment = { id: uid(), path, anchor: activeAnchor.id, label: activeAnchor.label, quote: activeAnchor.quote, author: author.trim(), body: body.trim(), createdAt: new Date().toISOString(), resolved: false, replies: [] };
+    persist([...comments, comment]);
+    if (shared) void fetch("/api/review-comments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(comment) });
     setBody(""); setActiveAnchor(null);
   };
 
-  const toggleResolved = (id: string) => persist(comments.map((item) => item.id === id ? { ...item, resolved: !item.resolved } : item));
+  const toggleResolved = (id: string) => {
+    const next = comments.map((item) => item.id === id ? { ...item, resolved: !item.resolved } : item);
+    persist(next);
+    const changed = next.find((item) => item.id === id);
+    if (shared && changed) void fetch("/api/review-comments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(changed) });
+  };
   const addReply = (id: string) => {
     const draft = replyDrafts[id]?.trim();
     if (!draft || !author.trim()) return;
-    persist(comments.map((item) => item.id === id ? { ...item, replies: [...item.replies, { id: uid(), author: author.trim(), body: draft, createdAt: new Date().toISOString() }] } : item));
+    const next = comments.map((item) => item.id === id ? { ...item, replies: [...item.replies, { id: uid(), author: author.trim(), body: draft, createdAt: new Date().toISOString() }] } : item);
+    persist(next);
+    const changed = next.find((item) => item.id === id);
+    if (shared && changed) void fetch("/api/review-comments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(changed) });
     setReplyDrafts({ ...replyDrafts, [id]: "" });
   };
 
@@ -151,7 +181,7 @@ export default function ReviewLayer() {
     </div>
 
     {panelOpen && <aside className="reviewPanel" aria-label="Pannello commenti">
-      <header><div><small>REVIEW MODE</small><h2>Commenti</h2><p>Salvati in questo browser · prototipo</p></div><button onClick={() => { setPanelOpen(false); setActiveAnchor(null); }}>×</button></header>
+      <header><div><small>REVIEW MODE</small><h2>Commenti</h2><p>{shared ? "Condivisi con il team" : "Salvati in questo browser · prototipo"}</p></div><button onClick={() => { setPanelOpen(false); setActiveAnchor(null); }}>×</button></header>
       {activeAnchor && <form className="reviewComposer" onSubmit={submit}>
         <strong>{activeAnchor.label}</strong>
         {activeAnchor.quote && <blockquote>“{activeAnchor.quote}”</blockquote>}
